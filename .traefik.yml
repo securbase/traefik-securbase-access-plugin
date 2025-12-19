@@ -1,0 +1,15 @@
+displayName: Securbase Access Plugin
+type: middleware
+
+import: github.com/securbase/traefik-securbase-access-plugin
+
+summary: 'Plugin que enruta requests basándose en dominio y header validado por JWT'
+
+#iconPath: icon.png
+
+testData:
+ debug: true
+ enalbed: true
+ headerName: "Authorization"
+ jwtsigner: "H.J.Simpson"
+ apiAccessURL: "http://localhost:8080/v1/api/key"

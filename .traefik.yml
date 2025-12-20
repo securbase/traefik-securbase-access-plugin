@@ -9,7 +9,8 @@ summary: 'Plugin que enruta requests basándose en dominio y header validado por
 
 testData:
  debug: true
- enalbed: true
+ enabled: true
  headerName: "Authorization"
- jwtsigner: "H.J.Simpson"
+ signKey: ""
+ encKey: ""
  apiAccessURL: "http://localhost:8080/v1/api/key"

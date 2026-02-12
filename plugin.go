@@ -7,8 +7,8 @@ import (
   "net/http/httputil"
 	"net/url"
 	"encoding/json"
-	_ "regexp"
-	_ "strconv"
+	//_ "regexp"
+	//_ "strconv"
 	"strings"
 	"log"
 	"time"
@@ -23,12 +23,14 @@ const (
 )
 
 type Config struct {
-	Debug bool   `json:"debug,omitempty" yaml:"debug,omitempty"`
-	Enabled bool   `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	Debug bool `json:"debug,omitempty" yaml:"debug,omitempty"`
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 	HeaderName string `json:"headerName,omitempty" yaml:"headerName,omitempty"`
 	SignKey string `json:"signKey,omitempty" yaml:"signKey,omitempty"`
 	EncKey string `json:"encKey,omitempty" yaml:"encKey,omitempty"`
 	ApiAccessURL string `json:"apiAccessURL,omitempty" yaml:"apiAccessURL,omitempty"`
+	MockApiAccess bool `json:"mockApiAccess,omitempty" yaml:"mockApiAccess,omitempty"`
+	MockHeaderValueValid string `json:"mockHeaderValueValid,omitempty" yaml:"mockHeaderValueValid,omitempty"`
 }
 
 func CreateConfig() *Config {
@@ -39,6 +41,8 @@ func CreateConfig() *Config {
 		SignKey: "",
 		EncKey: "",
 		ApiAccessURL: "http://localhost:8080/v1/api/key",
+		MockApiAccess: false,
+		MockHeaderValueValid: "",
 	}
 }
 
@@ -88,6 +92,19 @@ func (p *Plugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 
 		token := strings.TrimPrefix(headerValue, "Bearer ")
+
+		if p.config.MockApiAccess {
+			log.Printf("AccessPlugin: MOCK-API-ACCESS ENABLED: '%s'", p.config.MockHeaderValueValid)
+			if token == p.config.MockHeaderValueValid {
+				log.Printf("AccessPlugin MOCK-API-ACCESS: ACCESS ALLOW. From '%s' (%s) method '%s' to '['%s']%s'", req.Host, req.RemoteAddr, req.Method, domain, req.RequestURI)
+				p.next.ServeHTTP(rw, req)
+			} else {
+				log.Printf("AccessPlugin MOCK-API-ACCESS: ACCESS FILTER: FORBIDDEN. From '%s' (%s) method '%s' to '%s'", req.Host, req.RemoteAddr, req.Method, req.RequestURI)
+				http.Error(rw, "Forbidden", http.StatusForbidden)				
+			}
+			return
+		}
+
 		if p.config.Debug {
 			log.Printf("AccessPlugin: Parse JWE: %s", token)
 		}
@@ -177,7 +194,9 @@ func (p *Plugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			Success bool `json:"success"`
 			Destination string `json:"destination,omitempty"`
 			PrivateKeyComponent string `json:"privateKeyComponent,omitempty"`
+			PrivateKeyComponentSize string `json:"privateKeyComponentSize,omitempty"`
 			PrivateKeyComponentPrevio string `json:"privateKeyComponentPrevio,omitempty"`
+			PrivateKeyComponentPrevioSize string `json:"privateKeyComponentPrevioSize,omitempty"`
 		}
 		err = json.Unmarshal(apiRespBody, &apiResult)
 		if err != nil {
@@ -217,7 +236,12 @@ func (p *Plugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 				r.Header.Set("X-Proxy-Timestamp", proxyTimeBegin)
 
 				r.Header.Set("X-PRIVATE-KEY-COMPONENT", apiResult.PrivateKeyComponent)
-				r.Header.Set("X-PRIVATE-KEY-COMPONENT_PREVIO", apiResult.PrivateKeyComponentPrevio)
+				r.Header.Set("X-PRIVATE-KEY-COMPONENT-SIZE", apiResult.PrivateKeyComponentSize)
+				r.Header.Set("X-PRIVATE-KEY-COMPONENT-PREVIO", apiResult.PrivateKeyComponentPrevio)
+				r.Header.Set("X-PRIVATE-KEY-COMPONENT-SIZE-PREVIO", apiResult.PrivateKeyComponentPrevioSize)
+
+				r.Header.Set("X-ORGANIZATION", claims["orgId"].(string))
+				r.Header.Set("X-CANAL", claims["canal"].(string))
 			}
 
 			// Modify Response

@@ -8,11 +8,11 @@ summary: 'Plugin que enruta requests basándose en dominio y header validado por
 #iconPath: icon.png
 
 testData:
-  debug: true
+  debug: false
   enabled: true
   headerName: "Authorization"
   signKey: ""
   encKey: ""
   apiAccessURL: "http://localhost:8080/v1/api/key"
-  mockApiAccess: true,
-  mockHeaderValueValid : "permitir"
+  mockApiAccess: false
+  mockHeaderValueValid : ""

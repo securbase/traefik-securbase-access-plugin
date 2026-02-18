@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"encoding/json"
 	//_ "regexp"
-	//_ "strconv"
+	"strconv"
 	"strings"
 	//_ "log"
 	"time"
@@ -69,12 +69,12 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 
 func (p *Plugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if !p.config.Enabled {
-		io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: DISABLED. Access allow. From '%s' (%s) method '%s' to '%s'", req.Host, req.RemoteAddr, req.Method, req.RequestURI))
+		io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: DISABLED. Access allow. From '%s' (%s) method '%s' to '%s'\n", req.Host, req.RemoteAddr, req.Method, req.RequestURI))
 		p.next.ServeHTTP(rw, req)
 		return
 	}
  	if req.Method == "OPTIONS" {
-		io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: ENABLED. Method OPTIONS allow. From '%s' (%s) method '%s' to '%s'", req.Host, req.RemoteAddr, req.Method, req.RequestURI))
+		io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: ENABLED. Method OPTIONS allow. From '%s' (%s) method '%s' to '%s'\n", req.Host, req.RemoteAddr, req.Method, req.RequestURI))
 		p.next.ServeHTTP(rw, req)
 		return
 	}
@@ -83,46 +83,46 @@ func (p *Plugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	headerValue := req.Header.Get(p.config.HeaderName)
 
 	if headerValue == "" {
-		io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: JWT EMPTY. UNAUTHORIZED. From '%s' (%s) method '%s' to '%s'", req.Host, req.RemoteAddr, req.Method, req.RequestURI))
+		io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: JWT EMPTY. UNAUTHORIZED. From '%s' (%s) method '%s' to '%s'\n", req.Host, req.RemoteAddr, req.Method, req.RequestURI))
 		http.Error(rw, "Unauthorized", http.StatusUnauthorized)
 		return
 
 	} else { 
 		if p.config.Debug {
-			io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: JWT FOUND for '%s'", domain))
+			io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: JWT FOUND for '%s'\n", domain))
 		}
 
 		token := strings.TrimPrefix(headerValue, "Bearer ")
 
 		if p.config.MockApiAccess {
-			io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: MOCK-API-ACCESS ENABLED: '%s'", p.config.MockHeaderValueValid))
+			io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: MOCK-API-ACCESS ENABLED: '%s'\n", p.config.MockHeaderValueValid))
 			if token == p.config.MockHeaderValueValid {
-				io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin MOCK-API-ACCESS: ACCESS ALLOW. From '%s' (%s) method '%s' to '['%s']%s'", req.Host, req.RemoteAddr, req.Method, domain, req.RequestURI))
+				io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin MOCK-API-ACCESS: ACCESS ALLOW. From '%s' (%s) method '%s' to '['%s']%s'\n", req.Host, req.RemoteAddr, req.Method, domain, req.RequestURI))
 				p.next.ServeHTTP(rw, req)
 			} else {
-				io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin MOCK-API-ACCESS: ACCESS FILTER: FORBIDDEN. From '%s' (%s) method '%s' to '%s'", req.Host, req.RemoteAddr, req.Method, req.RequestURI))
+				io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin MOCK-API-ACCESS: ACCESS FILTER: FORBIDDEN. From '%s' (%s) method '%s' to '%s'\n", req.Host, req.RemoteAddr, req.Method, req.RequestURI))
 				http.Error(rw, "Forbidden", http.StatusForbidden)				
 			}
 			return
 		}
 
 		if p.config.Debug {
-			io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: Parse JWE: %s", token))
+			io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: Parse JWE: %s\n", token))
 		}
 		claims, err := parseJWT(token, p.config.SignKey, p.config.EncKey)
 		if err != nil {
-			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: JWT INVALID. UNAUTHORIZED. From '%s' (%s) method '%s' to '%s' [Error: %s]", req.Host, req.RemoteAddr, req.Method, req.RequestURI, err.Error()))
+			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: JWT INVALID. UNAUTHORIZED. From '%s' (%s) method '%s' to '%s' [Error: %s]\n", req.Host, req.RemoteAddr, req.Method, req.RequestURI, err.Error()))
 			http.Error(rw, "Invalid Token", http.StatusUnauthorized)
 			return
 		} 
 		expired, err := isTokenExpired(claims)
 		if err != nil {			
-			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: JWT EXPIRED. FORBIDDEN. From '%s' (%s) method '%s' to '%s' [Error: %s]", req.Host, req.RemoteAddr, req.Method, req.RequestURI, err.Error()))
+			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: JWT EXPIRED. FORBIDDEN. From '%s' (%s) method '%s' to '%s' [Error: %s]\n", req.Host, req.RemoteAddr, req.Method, req.RequestURI, err.Error()))
 			http.Error(rw, "Token Expired", http.StatusForbidden)
 			return
 		}
 		if expired {
-			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: JWT EXPIRED. FORBIDDEN. From '%s' (%s) method '%s' to '%s'", req.Host, req.RemoteAddr, req.Method, req.RequestURI))
+			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: JWT EXPIRED. FORBIDDEN. From '%s' (%s) method '%s' to '%s'\n", req.Host, req.RemoteAddr, req.Method, req.RequestURI))
 			http.Error(rw, "Token Expired", http.StatusForbidden)
 			return
 		}
@@ -131,9 +131,9 @@ func (p *Plugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		//apiQuery := url.Values{}
 		// apiQuery.Add("domain", req.Host)
 		//apiFullURL := fmt.Sprintf("%s?%s", p.ApiAccessURL, apiQuery.Encode())
-		apiFullURL := p.ApiAccessURL
+		apiFullURL := p.config.ApiAccessURL
 		if p.config.Debug {
-			io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: Validate access for '%s': %s", domain, apiFullURL))
+			io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: Validate access for '%s': %s\n", domain, apiFullURL))
 		}
 
 		apiData := map[string]string{
@@ -153,18 +153,18 @@ func (p *Plugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		// Convertir la estructura a JSON
 		jsonApiData, err := json.Marshal(apiData)
 		if err != nil {
-			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: JWT JSON MARSHAL ERROR. From '%s' (%s) method '%s' to '%s' [Error: %s]", req.Host, req.RemoteAddr, req.Method, req.RequestURI, err.Error()))
+			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: JWT JSON MARSHAL ERROR. From '%s' (%s) method '%s' to '%s' [Error: %s]\n", req.Host, req.RemoteAddr, req.Method, req.RequestURI, err.Error()))
 			http.Error(rw, "Internal Error", http.StatusInternalServerError)
 			return
 		}
 		if p.config.Debug {
-			io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: JSON for '%s': %s", domain, jsonApiData))
+			io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: JSON for '%s': %s\n", domain, jsonApiData))
 		}
 
 		httpApiReq, err := http.NewRequest(http.MethodPost, apiFullURL, bytes.NewBuffer(jsonApiData))
 		// httpApiReq, err := http.NewRequest(http.MethodGet, apiFullURL, nil)
 		if err != nil {
-			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: REQUEST ACCESS FILTER ERROR. From '%s' (%s) method '%s' to '%s' [Error: %s]", req.Host, req.RemoteAddr, req.Method, req.RequestURI, err.Error()))
+			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: REQUEST ACCESS FILTER ERROR. From '%s' (%s) method '%s' to '%s' [Error: %s]\n", req.Host, req.RemoteAddr, req.Method, req.RequestURI, err.Error()))
 			http.Error(rw, "Internal Error", http.StatusInternalServerError)
 			return
 		}
@@ -174,53 +174,58 @@ func (p *Plugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		
 		httpApiResp, err := p.client.Do(httpApiReq)
 		if err != nil {
-			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: RESPONSE ACCESS FILTER ERROR. From '%s' (%s) method '%s' to '%s' [Error: %s]", req.Host, req.RemoteAddr, req.Method, req.RequestURI, err.Error()))
+			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: RESPONSE ACCESS FILTER ERROR. From '%s' (%s) method '%s' to '%s' [Error: %s]\n", req.Host, req.RemoteAddr, req.Method, req.RequestURI, err.Error()))
 			http.Error(rw, "Internal Error", http.StatusInternalServerError)
 			return
 		}
 		defer httpApiResp.Body.Close()
 		apiRespBody, err := io.ReadAll(httpApiResp.Body)
 		if err != nil {
-			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: READ RESPONSE ACCESS FILTER ERROR. From '%s' (%s) method '%s' to '%s' [Error: %s]", req.Host, req.RemoteAddr, req.Method, req.RequestURI, err.Error()))
+			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: READ RESPONSE ACCESS FILTER ERROR. From '%s' (%s) method '%s' to '%s' [Error: %s]\n", req.Host, req.RemoteAddr, req.Method, req.RequestURI, err.Error()))
 			http.Error(rw, "Internal Error", http.StatusInternalServerError)
 			return
 		}
 		if httpApiResp.StatusCode != http.StatusOK {
-			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: RESPONSE ACCESS FILTER STATUS NOK [%d]. From '%s' (%s) method '%s' to '%s' [Error: %s]", httpApiResp.StatusCode, req.Host, req.RemoteAddr, req.Method, req.RequestURI, err.Error()))
+			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: RESPONSE ACCESS FILTER STATUS NOK [%d]. From '%s' (%s) method '%s' to '%s' [Error: %s]\n", httpApiResp.StatusCode, req.Host, req.RemoteAddr, req.Method, req.RequestURI, err.Error()))
 			http.Error(rw, "Internal Error", http.StatusInternalServerError)
 			return
+		} else {
+			if p.config.Debug {
+				io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: RESPONSE ACCESS FILTER STATUS OK [%d]. From '%s' (%s) method '%s' to '%s'\n", httpApiResp.StatusCode, req.Host, req.RemoteAddr, req.Method, req.RequestURI))
+				io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: RESPONSE BODY: %s\n", apiRespBody))
+			}
 		}
 
 		var apiResult struct {
 			Success bool `json:"success"`
 			Destination string `json:"destination,omitempty"`
 			PrivateKeyComponent string `json:"privateKeyComponent,omitempty"`
-			PrivateKeyComponentSize string `json:"privateKeyComponentSize,omitempty"`
+			PrivateKeyComponentSize int `json:"privateKeyComponentSize,omitempty"`
 			PrivateKeyComponentPrevio string `json:"privateKeyComponentPrevio,omitempty"`
-			PrivateKeyComponentPrevioSize string `json:"privateKeyComponentPrevioSize,omitempty"`
+			PrivateKeyComponentPrevioSize int `json:"privateKeyComponentPrevioSize,omitempty"`
 		}
 		err = json.Unmarshal(apiRespBody, &apiResult)
 		if err != nil {
-			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: READ RESPONSE ACCESS FILTER JSON MARSHAL ERROR. From '%s' (%s) method '%s' to '%s' [Error: %s]", req.Host, req.RemoteAddr, req.Method, req.RequestURI, err.Error()))
+			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: READ RESPONSE ACCESS FILTER JSON MARSHAL ERROR. From '%s' (%s) method '%s' to '%s' [Error: %s]\n", req.Host, req.RemoteAddr, req.Method, req.RequestURI, err.Error()))
 			http.Error(rw, "Internal Error", http.StatusInternalServerError)
 			return
 		}
 
 		io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: JSON for '%s' Success:%b Destination:'%s'", domain, apiResult.Success, apiResult.Destination))
 		if !apiResult.Success {
-			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: ACCESS FILTER: FORBIDDEN. From '%s' (%s) method '%s' to '%s'", req.Host, req.RemoteAddr, req.Method, req.RequestURI))
+			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: ACCESS FILTER: FORBIDDEN. From '%s' (%s) method '%s' to '%s'\n", req.Host, req.RemoteAddr, req.Method, req.RequestURI))
 			http.Error(rw, "Forbidden", http.StatusForbidden)
 			return
 		}
 
 		if apiResult.Destination != "" {
 			if p.config.Debug {
-				io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: Access allow. Redirect from '%s' to '%s'", domain, apiResult.Destination))
+				io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: Access allow. Redirect from '%s' to '%s'\n", domain, apiResult.Destination))
 			}
 			//--
 			proxyTgtReq, err := url.Parse(apiResult.Destination)
 			if err != nil {
-				io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: ACCESS FILTER INVALID TARGET URL='%s'. From '%s' (%s) method '%s' to '%s' [Error: %s]", apiResult.Destination, req.Host, req.RemoteAddr, req.Method, req.RequestURI, err.Error()))
+				io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: ACCESS FILTER INVALID TARGET URL='%s'. From '%s' (%s) method '%s' to '%s' [Error: %s]\n", apiResult.Destination, req.Host, req.RemoteAddr, req.Method, req.RequestURI, err.Error()))
 				http.Error(rw, "Internal Error", http.StatusInternalServerError)
 				return
 			}
@@ -237,9 +242,9 @@ func (p *Plugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 				r.Header.Set("X-Proxy-Timestamp", proxyTimeBegin)
 
 				r.Header.Set("X-PRIVATE-KEY-COMPONENT", apiResult.PrivateKeyComponent)
-				r.Header.Set("X-PRIVATE-KEY-COMPONENT-SIZE", apiResult.PrivateKeyComponentSize)
+				r.Header.Set("X-PRIVATE-KEY-COMPONENT-SIZE", strconv.Itoa(apiResult.PrivateKeyComponentSize))
 				r.Header.Set("X-PRIVATE-KEY-COMPONENT-PREVIO", apiResult.PrivateKeyComponentPrevio)
-				r.Header.Set("X-PRIVATE-KEY-COMPONENT-SIZE-PREVIO", apiResult.PrivateKeyComponentPrevioSize)
+				r.Header.Set("X-PRIVATE-KEY-COMPONENT-SIZE-PREVIO", strconv.Itoa(apiResult.PrivateKeyComponentPrevioSize))
 
 				r.Header.Set("X-ORGANIZATION", claims["orgId"].(string))
 				r.Header.Set("X-CANAL", claims["canal"].(string))
@@ -257,11 +262,11 @@ func (p *Plugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 				}
 			}
 
-			io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: ACCESS ALLOW. From '%s' (%s) method '%s' to '[%s]%s'", req.Host, req.RemoteAddr, req.Method, apiResult.Destination, req.RequestURI))
+			io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: ACCESS ALLOW. From '%s' (%s) method '%s' to '[%s]%s'\n", req.Host, req.RemoteAddr, req.Method, apiResult.Destination, req.RequestURI))
 			proxyReq.ServeHTTP(rw, req)
 
 		} else {
-			io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: ACCESS ALLOW. From '%s' (%s) method '%s' to '['%s']%s'", req.Host, req.RemoteAddr, req.Method, domain, req.RequestURI))
+			io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: ACCESS ALLOW. From '%s' (%s) method '%s' to '['%s']%s'\n", req.Host, req.RemoteAddr, req.Method, domain, req.RequestURI))
 			p.next.ServeHTTP(rw, req)
 		}
 

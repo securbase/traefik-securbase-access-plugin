@@ -146,6 +146,7 @@ func (p *Plugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			"iss": claims["iss"].(string),
 
 			"orgId": claims["orgId"].(string),
+			"canalId": claims["canalId"].(string),
 			"canal": claims["canal"].(string), 
 			"version": claims["version"].(string),
 		}

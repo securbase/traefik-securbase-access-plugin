@@ -193,7 +193,7 @@ func (p *Plugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		} else {
 			if p.config.Debug {
 				io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: RESPONSE ACCESS FILTER STATUS OK [%d]. From '%s' (%s) method '%s' to '%s'\n", httpApiResp.StatusCode, req.Host, req.RemoteAddr, req.Method, req.RequestURI))
-				io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: RESPONSE BODY: %s\n", apiRespBody))
+				io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: RESPONSE ACCESS FILTER BODY: %s\n", apiRespBody))
 			}
 		}
 
@@ -207,21 +207,21 @@ func (p *Plugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 		err = json.Unmarshal(apiRespBody, &apiResult)
 		if err != nil {
-			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: READ RESPONSE ACCESS FILTER JSON MARSHAL ERROR. From '%s' (%s) method '%s' to '%s' [Error: %s]\n", req.Host, req.RemoteAddr, req.Method, req.RequestURI, err.Error()))
+			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: ACCESS FILTER READ RESPONSE JSON MARSHAL ERROR. From '%s' (%s) method '%s' to '%s' [Error: %s]\n", req.Host, req.RemoteAddr, req.Method, req.RequestURI, err.Error()))
 			http.Error(rw, "Internal Error", http.StatusInternalServerError)
 			return
 		}
 
-		io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: JSON for '%s' Success:%b Destination:'%s'", domain, apiResult.Success, apiResult.Destination))
+		io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: ACCESS FILTER JSON for '%s' Success:%b Destination:'%s'\n", domain, apiResult.Success, apiResult.Destination))
 		if !apiResult.Success {
-			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: ACCESS FILTER: FORBIDDEN. From '%s' (%s) method '%s' to '%s'\n", req.Host, req.RemoteAddr, req.Method, req.RequestURI))
+			io.WriteString(os.Stderr, fmt.Sprintf("AccessPlugin: ACCESS FILTER FORBIDDEN. From '%s' (%s) method '%s' to '%s'\n", req.Host, req.RemoteAddr, req.Method, req.RequestURI))
 			http.Error(rw, "Forbidden", http.StatusForbidden)
 			return
 		}
 
 		if apiResult.Destination != "" {
 			if p.config.Debug {
-				io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: Access allow. Redirect from '%s' to '%s'\n", domain, apiResult.Destination))
+				io.WriteString(os.Stdout, fmt.Sprintf("AccessPlugin: ACCESS FILTER ACCESS ALLOW. Redirect from '%s' to '%s'\n", domain, apiResult.Destination))
 			}
 			//--
 			proxyTgtReq, err := url.Parse(apiResult.Destination)
